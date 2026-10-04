@@ -77,6 +77,7 @@ body {
   --code-size: 0.875em;
   --table-border-width: 1px;
   --tree-width: 300px;
+  --bar-height: 40px;
 }
 .scheme-dark {
   color-scheme: dark;
@@ -199,6 +200,63 @@ body.is-tree-hidden .pane.pane-left {
   display: flex;
   flex-direction: column;
 }
+.tabs {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.tab-bar {
+  flex: 0 0 var(--bar-height);
+  height: var(--bar-height);
+  display: flex;
+  align-items: flex-end;
+  padding: 0 8px;
+  background-color: var(--bg-side);
+}
+.tab-bar-inner {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 100%;
+  min-width: 0;
+}
+.tab {
+  display: flex;
+  align-items: center;
+  height: 32px;
+  max-width: 240px;
+  min-width: 0;
+  padding: 0 12px;
+  border-radius: var(--radius-m) var(--radius-m) 0 0;
+  color: var(--fg-muted);
+  font-size: var(--ui-s);
+  position: relative;
+}
+.tab.is-current {
+  background-color: var(--bg);
+  color: var(--fg);
+}
+.pane.pane-left .tab.is-current {
+  background-color: var(--bg-side-alt);
+}
+.tab-inner {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.tab-icon {
+  display: flex;
+}
+.tab-icon .icon {
+  --icon-size: 15px;
+}
+.tab-title {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .view {
   flex: 1 1 auto;
   display: flex;
@@ -209,6 +267,9 @@ body.is-tree-hidden .pane.pane-left {
 }
 .pane-left .view {
   background-color: var(--bg-side);
+}
+.phone-only {
+  display: none !important;
 }
 .view-body {
   flex: 1 1 auto;
@@ -803,6 +864,9 @@ body.is-tree-hidden .pane.pane-left {
 body {
   --page-margin: 16px;
 }
+.phone-only {
+  display: inline-flex !important;
+}
 .pane.pane-left {
   position: fixed;
   top: 0;
@@ -832,6 +896,7 @@ body.is-tree-shown .sidebar-backdrop {
 }
 @media print {
 .pane.pane-left,
+.tab-bar,
 .refs {
   display: none !important;
 }
@@ -846,43 +911,55 @@ body {
   overflow: visible;
 }
 }
-.ui-minimal .pane.pane-left > .view {
-  flex: 1 1 auto;
-}
-.ui-minimal .pane.is-root > .view {
-  flex: 1 1 auto;
-}
-.ui-minimal .tree-header {
-  padding-top: 16px;
-}
-.ui-minimal .site-name {
-  font-size: var(--ui-m);
-}
-.mobile-header {
-  display: none;
-}
-@media (max-width: 768px) {
-.ui-minimal .mobile-header {
-  flex: 0 0 auto;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 8px;
-  background-color: var(--bg);
-  border-bottom: 1px solid var(--line);
-  font-size: var(--ui-s);
-}
-.ui-minimal .mobile-header-title {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-}
 @view-transition {
   navigation: auto;
 }
+.ui-tabs .pane.is-root {
+  flex-direction: row;
+}
+.ui-tabs .is-root > .tabs {
+  flex: 1 1 0;
+  min-width: 0;
+}
+.ui-tabs [data-pane="pinned"] {
+  border-left: 1px solid var(--line);
+}
 [data-pane][hidden] {
   display: none !important;
+}
+.ui-tabs .tab-bar-inner {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+.ui-tabs .tab {
+  max-width: 320px;
+}
+.export-tab-tools {
+  margin-left: auto;
+  align-self: center;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding-left: 8px;
+  flex: none;
+}
+.ui-tabs .tab-bar > .phone-only {
+  align-self: center;
+  margin-right: 4px;
+}
+.ui-tabs [data-pane] > .view {
+  flex: 1 1 auto;
+}
+@media (max-width: 768px) {
+.ui-tabs [data-pane="pinned"] {
+  display: none !important;
+}
+.ui-tabs .tree-file[data-kind="canvas"] {
+  display: none;
+}
+.ui-tabs .export-tab-tools {
+  gap: 0;
+}
 }
 .card.export-image-card .card-frame {
   border: none;

@@ -1,0 +1,11 @@
+.view,
+.page-view,
+.page-scroll {
+  background-size: 43px 43px !important;
+}
+.view[data-view="board"] {
+  background-image: none !important;
+}
+.prose img {
+  border: none !important;
+}

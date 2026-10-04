@@ -330,6 +330,26 @@ a.tag:hover {
 .pane.pane-left {
   background: var(--pb-sidebar);
 }
+.tab-bar {
+  background: var(--pb-sidebar) !important;
+  border-bottom: 1px solid var(--pb-blue);
+}
+.tab {
+  color: #ffffff;
+  border-radius: 0 !important;
+}
+.tab:hover {
+  color: var(--pb-blue);
+  background: #ffffff;
+}
+.tab.is-current {
+  color: #ffffff !important;
+  background: var(--pb-blue) !important;
+}
+.tab.is-current::before,
+.tab.is-current::after {
+  display: none !important;
+}
 .icon-button {
   color: #ffffff;
   border-radius: 0 !important;
