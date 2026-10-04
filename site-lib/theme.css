@@ -157,6 +157,12 @@
   outline: 2px solid var(--pb-blue);
   outline-offset: 1px;
 }
+.is-missing,
+.link-in.is-missing {
+  color: var(--pb-purple) !important;
+  opacity: 0.8;
+  text-decoration: dashed underline !important;
+}
 .link-out {
   color: var(--pb-blue) !important;
   text-decoration: underline;

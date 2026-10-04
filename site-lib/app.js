@@ -1,12 +1,16 @@
-/* client side behaviour: file tree, search, sidebar, callouts, canvas (no dependencies)
+/* client side behaviour: file tree, search, sidebar, callouts, canvas, text size and page loading
+   without full reloads (no dependencies).
    Class and attribute names in string literals are renamed on export, so regex literals
    in this file must not contain quote characters. */
 (function () {
   "use strict";
 
   var body = document.body;
-  var root = body.getAttribute("data-root") || "./";
   var MOBILE = window.matchMedia("(max-width: 768px)");
+  var rootAbs = new URL(body.getAttribute("data-root") || "./", window.location.href).href;
+  // pages are loaded in place (no white flash, pinned tab stays open) - not possible from file://
+  var INPLACE = /^https?:$/.test(window.location.protocol) && !body.classList.contains("ui-app");
+  var LEAF = '[data-pane="main"] > .view, .is-root > .view';
 
   function store(key, value) {
     try {
@@ -44,9 +48,39 @@
     else if (action === "back") history.back();
     else if (action === "forward") history.forward();
     else if (action === "focus-search") focusSearch();
+    else if (action === "text-smaller") changeTextSize(-1);
+    else if (action === "text-larger") changeTextSize(1);
     else return;
     e.preventDefault();
   });
+
+  /* ------------------------------------------------------------- text size */
+
+  // The page pane carries its text size as an inline custom property; its (renamed) name is read
+  // from the element, so this works whatever the variable is called in the published CSS.
+  var sizePane = document.querySelector('[data-pane="main"]');
+  var sizeVar = null;
+  var baseSize = 16;
+  if (sizePane) {
+    for (var i = 0; i < sizePane.style.length; i++) {
+      if (sizePane.style[i].indexOf("--") === 0) sizeVar = sizePane.style[i];
+    }
+    if (sizeVar) baseSize = parseFloat(sizePane.style.getPropertyValue(sizeVar)) || 16;
+  }
+
+  function applyTextSize() {
+    if (!sizeVar) return;
+    sizePane.style.setProperty(sizeVar, (baseSize + (store("text-size-delta") || 0)) + "px");
+  }
+
+  function changeTextSize(step) {
+    var delta = (store("text-size-delta") || 0) + step;
+    if (baseSize + delta < 9 || baseSize + delta > 32) return;
+    store("text-size-delta", delta);
+    applyTextSize();
+  }
+
+  applyTextSize();
 
   /* ---------------------------------------------------------- file explorer */
 
@@ -74,6 +108,26 @@
       store("expanded", expanded);
     });
   });
+
+  // highlight the current page in the tree and open the folders above it
+  function markActive(path) {
+    document.querySelectorAll(".tree-file-row.is-current").forEach(function (a) { a.classList.remove("is-current"); });
+    document.querySelectorAll(".tree-dir.has-current").forEach(function (f) { f.classList.remove("has-current"); });
+    if (!path) return;
+    var current = null;
+    document.querySelectorAll(".tree-file-row[data-path]").forEach(function (a) {
+      if (a.getAttribute("data-path") === path) current = a;
+    });
+    if (!current) return;
+    current.classList.add("is-current");
+    var folder = current.closest(".tree-dir[data-path]");
+    while (folder) {
+      folder.classList.add("has-current");
+      setFolder(folder, true);
+      folder = folder.parentElement.closest(".tree-dir[data-path]");
+    }
+    if (current.scrollIntoView) current.scrollIntoView({ block: "nearest" });
+  }
 
   var active = document.querySelector(".tree-file-row.is-current");
   if (active && active.scrollIntoView) active.scrollIntoView({ block: "center" });
@@ -149,7 +203,7 @@
       results.innerHTML = '<div class="find-empty">' + (body.getAttribute("data-no-results") || "No results.") + "</div>";
     } else {
       results.innerHTML = hits.slice(0, 100).map(function (h) {
-        var href = root + h.item.p.split("/").map(encodeURIComponent).join("/");
+        var href = rootAbs + h.item.p.split("/").map(encodeURIComponent).join("/");
         var snip = snippet(h.item.c, terms);
         return '<div class="node find-hit"><a class="node-row find-hit-title is-pressable" href="' +
           esc(href) + '"><div class="node-label">' + esc(h.item.t) + "</div></a>" +
@@ -167,7 +221,7 @@
       if (e.key === "Escape") { input.value = ""; runSearch(); input.blur(); }
       if (e.key === "Enter") {
         var first = results.querySelector("a");
-        if (first) window.location.href = first.getAttribute("href");
+        if (first) navigate(first.href);
       }
     });
     try {
@@ -183,19 +237,127 @@
     }
   });
 
+  /* ------------------------------------------------- page loading in place */
+
+  // Make relative links absolute, so they stay valid when the address changes without a reload.
+  function absolutize(el, base) {
+    el.querySelectorAll("[href]").forEach(function (a) {
+      var v = a.getAttribute("href");
+      if (v && v.charAt(0) !== "#") a.setAttribute("href", new URL(v, base).href);
+    });
+    el.querySelectorAll("[src]").forEach(function (m) {
+      m.setAttribute("src", new URL(m.getAttribute("src"), base).href);
+    });
+    el.querySelectorAll("[style]").forEach(function (m) {
+      var st = m.getAttribute("style");
+      if (st.indexOf("url(") >= 0) {
+        m.setAttribute("style", st.replace(/url\(\s*([^)]+?)\s*\)/g, function (all, u) {
+          var clean = u.replace(/^[\x22\x27]|[\x22\x27]$/g, "");
+          return "url(" + JSON.stringify(new URL(clean, base).href) + ")";
+        }));
+      }
+    });
+  }
+
+  var loading = 0;
+
+  function navigate(url) {
+    if (INPLACE) load(url, true);
+    else window.location.href = url;
+  }
+
+  function load(url, push) {
+    var token = ++loading;
+    fetch(url, { credentials: "same-origin" }).then(function (r) {
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      return r.text();
+    }).then(function (html) {
+      if (token !== loading) return;
+      var doc = new DOMParser().parseFromString(html, "text/html");
+      var fresh = doc.querySelector(LEAF);
+      var old = document.querySelector(LEAF);
+      if (!fresh || !old) { window.location.href = url; return; }
+      absolutize(fresh, url);
+      fresh = document.adoptNode(fresh);
+      old.replaceWith(fresh);
+      document.title = doc.title;
+      [".tab-title", ".mobile-header-title"].forEach(function (sel) {
+        var from = doc.querySelector('[data-pane="main"] ' + sel) || doc.querySelector(sel);
+        var to = document.querySelector('[data-pane="main"] ' + sel) || document.querySelector(sel);
+        if (from && to) to.textContent = from.textContent;
+      });
+      var fromIcon = doc.querySelector('[data-pane="main"] .tab-icon');
+      var toIcon = document.querySelector('[data-pane="main"] .tab-icon');
+      if (fromIcon && toIcon) toIcon.innerHTML = fromIcon.innerHTML;
+      ["view-page", "view-board"].forEach(function (c) {
+        body.classList.toggle(c, doc.body.classList.contains(c));
+      });
+      // the pinned tab is left out on the pinned page itself
+      var pinned = document.querySelector('[data-pane="pinned"]');
+      var newPinned = doc.querySelector('[data-pane="pinned"]');
+      if (newPinned && !pinned) {
+        absolutize(newPinned, url);
+        pinned = document.adoptNode(newPinned);
+        document.querySelector(".is-root").appendChild(pinned);
+        initContent(pinned);
+      }
+      if (pinned) pinned.hidden = !newPinned;
+      var activeItem = doc.querySelector(".tree-file-row.is-current");
+      markActive(activeItem ? activeItem.getAttribute("data-path") : null);
+      if (push) history.pushState({ inplace: true }, "", url);
+      body.classList.remove("is-tree-shown");
+      var hash = new URL(url).hash;
+      var target = hash ? document.getElementById(decodeURIComponent(hash.slice(1))) : null;
+      if (target) target.scrollIntoView();
+      initContent(fresh);
+    }).catch(function () {
+      window.location.href = url;
+    });
+  }
+
+  if (INPLACE) {
+    absolutize(document.querySelector(".pane-left") || document.createElement("div"), window.location.href);
+    var pinnedPane = document.querySelector('[data-pane="pinned"]');
+    if (pinnedPane) absolutize(pinnedPane, window.location.href);
+    history.replaceState({ inplace: true }, "", window.location.href);
+
+    document.addEventListener("click", function (e) {
+      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      var a = e.target.closest("a[href]");
+      if (!a || a.target === "_blank" || a.hasAttribute("download")) return;
+      var url = new URL(a.href, window.location.href);
+      if (url.origin !== window.location.origin || url.href.indexOf(rootAbs) !== 0) return;
+      if (!/(\.html|\/)$/.test(url.pathname)) return;  // images, PDFs, ... open normally
+      if (url.pathname === window.location.pathname && url.hash) return;  // jump inside the page
+      e.preventDefault();
+      load(url.href, true);
+    });
+
+    window.addEventListener("popstate", function () {
+      load(window.location.href, false);
+    });
+  }
+
   /* ---------------------------------------------------------------- canvas */
 
-  var wrapper = document.querySelector(".board-view");
-  if (wrapper) initCanvas(wrapper);
+  function initContent(container) {
+    container.querySelectorAll(".board-view").forEach(function (w) {
+      if (!w.hasAttribute("data-ready")) initCanvas(w);
+    });
+  }
 
   function initCanvas(wrapper) {
+    wrapper.setAttribute("data-ready", "");
     var canvas = wrapper.querySelector(".board");
     var b = (wrapper.getAttribute("data-bounds") || "0,0,1,1").split(",").map(Number);
     var view = { x: 0, y: 0, s: 1 };
     var gridSize = 20;
+    var fitted = false;
 
     function apply() {
       canvas.style.transform = "translate(" + view.x + "px," + view.y + "px) scale(" + view.s + ")";
+      // card labels keep their size on screen, whatever the zoom
+      canvas.style.setProperty("--zoom-inverse", String(1 / view.s));
       var g = gridSize * view.s;
       while (g < 10) g *= 2;
       wrapper.style.backgroundSize = g + "px " + g + "px";
@@ -204,12 +366,14 @@
 
     function fit() {
       var w = wrapper.clientWidth, h = wrapper.clientHeight;
+      if (!w || !h) return;  // hidden (e.g. on phones)
       var bw = Math.max(1, b[2] - b[0]), bh = Math.max(1, b[3] - b[1]);
-      var pad = 60;
+      var pad = 40;
       view.s = Math.min((w - pad * 2) / bw, (h - pad * 2) / bh, 1);
-      if (!isFinite(view.s) || view.s <= 0) view.s = 1;
+      if (!isFinite(view.s) || view.s <= 0) view.s = 0.1;
       view.x = w / 2 - (b[0] + bw / 2) * view.s;
       view.y = h / 2 - (b[1] + bh / 2) * view.s;
+      fitted = true;
       apply();
     }
 
@@ -239,13 +403,11 @@
     var pointers = {};
     var last = null;
     var pinch = null;
-    var moved = false;
 
     wrapper.addEventListener("pointerdown", function (e) {
       if (e.target.closest("a, iframe, .board-toolbar, audio, video, input")) return;
       pointers[e.pointerId] = { x: e.clientX, y: e.clientY };
       wrapper.setPointerCapture(e.pointerId);
-      moved = false;
       var ids = Object.keys(pointers);
       if (ids.length === 1) {
         last = { x: e.clientX, y: e.clientY };
@@ -268,7 +430,6 @@
       } else if (last) {
         view.x += e.clientX - last.x;
         view.y += e.clientY - last.y;
-        if (Math.abs(e.clientX - last.x) + Math.abs(e.clientY - last.y) > 0) moved = true;
         last = { x: e.clientX, y: e.clientY };
         apply();
       }
@@ -294,7 +455,12 @@
       });
     });
 
-    window.addEventListener("resize", fit);
+    window.addEventListener("resize", function () {
+      if (!document.body.contains(wrapper)) return;
+      if (!fitted || !wrapper.matches(".is-dragging")) fit();
+    });
     fit();
   }
+
+  initContent(document);
 })();

@@ -324,6 +324,19 @@ body.is-tree-hidden .pane.pane-left {
   background-color: var(--bg-side-alt);
   color: var(--fg-muted);
 }
+.find-hit {
+  margin-bottom: 4px;
+}
+.find-hit-title {
+  padding-left: 8px;
+  color: var(--fg);
+  font-weight: 600;
+}
+.find-hit-path {
+  font-size: var(--ui-xs);
+  color: var(--fg-faint);
+  padding: 0 8px 2px;
+}
 .find-empty {
   color: var(--fg-faint);
   padding: 8px;
@@ -429,6 +442,10 @@ body.is-tree-hidden .pane.pane-left {
 .prose .link-in {
   text-decoration: underline;
   cursor: pointer;
+}
+.prose .link-in.is-missing {
+  opacity: 0.7;
+  cursor: default;
 }
 .prose .link-out {
   text-decoration: underline;
@@ -571,6 +588,9 @@ body.is-tree-hidden .pane.pane-left {
   overflow: visible;
   padding: 0;
 }
+.embed.is-missing {
+  color: var(--fg-faint);
+}
 .fields {
   margin-bottom: 2em;
   font-size: var(--ui-s);
@@ -642,6 +662,10 @@ body.is-tree-hidden .pane.pane-left {
 .node-badge {
   font-size: var(--ui-xs);
   color: var(--fg-faint);
+}
+.refs .find-hit-title {
+  padding-left: 8px;
+  text-decoration: none;
 }
 .export-listing {
   list-style: none;
@@ -853,4 +877,21 @@ body {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+}
+@view-transition {
+  navigation: auto;
+}
+[data-pane][hidden] {
+  display: none !important;
+}
+.card.export-image-card .card-frame {
+  border: none;
+  box-shadow: none;
+  background: transparent;
+  border-radius: 0;
+}
+.card-label {
+  transform: scale(var(--zoom-inverse, 1));
+  transform-origin: 0 100%;
+  max-width: calc(100% / var(--zoom-inverse, 1));
 }
