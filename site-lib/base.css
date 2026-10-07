@@ -649,6 +649,17 @@ body.is-tree-hidden .pane.pane-left {
   overflow: visible;
   padding: 0;
 }
+.embed-file {
+  display: inline-flex;
+  padding: 8px 12px;
+  border-radius: var(--radius-s);
+  background: var(--bg-side);
+}
+.embed-file-link {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+}
 .embed.is-missing {
   color: var(--fg-faint);
 }

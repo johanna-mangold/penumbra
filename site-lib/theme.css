@@ -393,7 +393,8 @@ input[type="checkbox"]:checked {
   padding: 4px;
   background: #ffffff;
 }
-.embed-note {
+.embed-note,
+.embed-file {
   background: #ffffff;
   color: var(--pb-blue);
   border: 2px solid var(--pb-blue);
