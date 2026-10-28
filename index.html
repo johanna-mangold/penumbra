@@ -82,15 +82,13 @@ milch suchend.</p></div></div></div></div></div></div><div class="board-toolbar"
 </div>
 <script src="./site-lib/search-index.js"></script>
 <script src="./site-lib/app.js"></script>
-  <!-- Diesen gesamten Block direkt vor </body> einfügen.
-Für Verfügbarkeit bei jedem Einstieg: in allen exportierten HTML-Seiten
-oder der gemeinsamen Export-Vorlage ergänzen. Bei erneutem Export erhalten.
-Interne Navigation via app.js erhält den Player. Vollständiges Neuladen
-oder Verlassen der Website beendet die Wiedergabe. -->
-<script>
-(() => {
-  function init() {
-    if (document.getElementById('jm-penumbra-player')) return;
+  // PENUMBRA SIGNAL CONSOLE
+// Den gesamten Inhalt ans Ende von site-lib/app.js setzen.
+// Vorher den alten Player-Code entfernen. Keine <script>-Tags hinzufügen.
+// Bei erneutem Website-Export diese Ergänzung beibehalten.
+;(() => {
+function init() {
+ if (document.getElementById('jm-penumbra-player')) return;
     const tracks = [
       ['fa176141d462433495c8ea8b63271c69', .6],
       ['95154ba589e64746bc51b4855f633798', .6],
@@ -103,100 +101,85 @@ oder Verlassen der Website beendet die Wiedergabe. -->
       ['11472556fc1746f189adb2339dc72a1e', .8],
       ['b973b67efcef4539a08c3ba999633f44', .6]
     ];
-    const host = document.createElement('div');
-    host.id = 'jm-penumbra-player';
-    const root = host.attachShadow({mode: 'open'});
-    root.innerHTML = `
-      <style>
-        :host { position:fixed; left:16px; bottom:16px;
-          bottom:calc(16px + env(safe-area-inset-bottom, 0px));
-          width:190px; max-width:calc(100vw - 32px); z-index:1000;
-          color-scheme:light; font:11px/1.35 Arial,sans-serif; color:#64565d; }
-        * {box-sizing:border-box}
-        .bar {display:flex; align-items:center; gap:4px; min-height:40px;
-          padding:3px 5px; background:#fff; border:1px solid #e5d9df; border-radius:2px}
-        button {display:grid; place-items:center; flex:0 0 24px; width:24px;
-          height:32px; padding:0; border:0; background:transparent;
-          color:#a86f86; cursor:pointer}
-        button:hover {color:#82465f}
-        button:focus-visible,input:focus-visible {outline:2px solid #a86f86;outline-offset:1px}
-        svg {width:14px;height:14px;fill:currentColor}
-        .text {flex:1;min-width:0;white-space:nowrap}
-        input {display:block;width:100%;height:10px;margin:2px 0 0;accent-color:#a86f86}
-        [hidden] {display:none!important}
-        .status:not(:empty) {display:block;padding:5px;background:white;white-space:normal}
-        @media(max-width:767px) { :host {display:none} }
-      </style>
-      <div class="bar" role="group" aria-label="Musik von Johanna Mangold">
-        <button class="play" type="button" aria-label="Abspielen" title="Abspielen"></button>
-        <div class="text">play random sound<br>by johanna mangold
-          <input type="range" min="0" max="100" value="0" step="0.1"
-            aria-label="Wiedergabeposition" hidden disabled>
-        </div>
-        <button class="next" type="button" aria-label="Nächstes zufälliges Stück" title="Nächstes zufälliges Stück">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5v14l10-7zM17 5h2v14h-2z"/></svg>
-        </button>
-      </div><span class="status" role="status"></span>`;
-    document.body.appendChild(host);
-    const audio = new Audio();
-    audio.preload = 'none';
-    const play = root.querySelector('.play');
-    const next = root.querySelector('.next');
-    const seek = root.querySelector('input');
-    const status = root.querySelector('.status');
-    let index = -1;
-    let generation = 0;
-    const mobile = matchMedia('(max-width:767px)');
-    function update() {
-      const label = audio.paused ? 'Abspielen' : 'Pause';
-      play.setAttribute('aria-label',label);
-      play.title = label;
-      play.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="' +
-        (audio.paused ? 'M8 5v14l11-7z' : 'M7 5h3v14H7zM14 5h3v14h-3z') + '"/></svg>';
-    }
-    function start() {
-      status.textContent = '';
-      const request = ++generation;
-      audio.play().catch(error => {
-        if (request !== generation || error.name === 'AbortError') return;
-        status.textContent = 'Wiedergabe nicht möglich. Bitte erneut Play oder Weiter drücken.';
-        update();
-      });
-    }
-    function random() {
-      const choices = tracks.map((_,i)=>i).filter(i=>i!==index);
-      index = choices[Math.floor(Math.random()*choices.length)];
-      audio.src = 'https://static.wixstatic.com/mp3/0f3578_' + tracks[index][0] + '.mp3';
-      audio.volume = tracks[index][1];
-      seek.hidden = false; seek.disabled = true; seek.value = 0;
-      start();
-    }
-    play.addEventListener('click', () => {
-      if (index < 0) random();
-      else if (audio.paused) start();
-      else { ++generation; audio.pause(); }
-    });
-    next.addEventListener('click', random);
-    audio.addEventListener('play',update);
-    audio.addEventListener('pause',update);
-    audio.addEventListener('ended',()=>{if(!mobile.matches) random()});
-    audio.addEventListener('error',()=>{status.textContent='Stück nicht erreichbar. Bitte Weiter drücken.';update()});
-    function timeline() {
-      const ready = Number.isFinite(audio.duration) && audio.duration > 0;
-      seek.disabled = !ready;
-      seek.max = ready ? audio.duration : 100;
-      seek.value = ready ? audio.currentTime : 0;
-    }
-    audio.addEventListener('loadedmetadata',timeline);
-    audio.addEventListener('timeupdate',timeline);
-    seek.addEventListener('input',()=>{if(!seek.disabled)audio.currentTime=Number(seek.value)});
-    // Entsprechend dem bisherigen Player: auf Mobilgeräten ausgeblendet.
-    mobile.addEventListener('change',()=>{if(mobile.matches){++generation;audio.pause()}});
-    update();
-  }
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});
-  else init();
+
+ const host=document.createElement('div'); host.id='jm-penumbra-player';
+ const root=host.attachShadow({mode:'open'});
+ root.innerHTML=`
+ <style>
+ :host{position:fixed;right:20px;bottom:20px;width:360px;max-width:calc(100vw - 24px);z-index:1000;color-scheme:dark;font:12px/1.3 mononoki,'Courier New',monospace;color:#ddd;--blue:#271cff}
+ *{box-sizing:border-box} [hidden]{display:none!important}
+ .console{background:#a7a7a7;border:3px solid;border-color:#ddd #424242 #424242 #ddd;box-shadow:7px 7px 0 #080817;padding:5px}
+ header{display:flex;align-items:center;gap:8px;background:var(--blue);padding:4px 5px;color:white;font-weight:bold;letter-spacing:1px}
+ header span{flex:1} header button{width:26px;height:24px;padding:0;font-size:18px}
+ button{font:inherit;cursor:pointer;border:2px solid;border-color:#f1f1f1 #424242 #424242 #f1f1f1;background:#b5b5b5;color:#111;border-radius:0;min-height:32px}
+ button:hover{background:#ddd} button:active,button[aria-pressed=true]{border-color:#424242 #eee #eee #424242;background:var(--blue);color:white}
+ button:focus-visible,input:focus-visible{outline:2px solid white;outline-offset:2px}
+ .display{position:relative;background:#090b24;border:2px solid;border-color:#444 #ddd #ddd #444;margin-top:6px;padding:12px;overflow:hidden}
+ .display:after{content:'';position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,transparent 0 3px,#6e79ff12 3px 4px)}
+ .top{display:flex;justify-content:space-between;color:#a2a7ff;font-size:10px;letter-spacing:2px}
+ .digits{font-size:52px;line-height:1.2;font-weight:900;letter-spacing:-3px;color:#ddd;font-variant-numeric:tabular-nums;text-shadow:3px 3px 0 var(--blue)}
+ .readout{display:flex;align-items:center;justify-content:space-between;margin:5px 0}
+ .grid{width:100px;height:48px;background:linear-gradient(transparent 92%,#271cff 92%),linear-gradient(90deg,transparent 92%,#271cff 92%);background-size:10px 10px;position:relative;border-bottom:2px solid #a3a7ff;transform:perspective(75px) rotateX(25deg)}
+ .grid:after{content:'';position:absolute;left:0;right:0;top:45%;height:3px;background:#a3a7ff;box-shadow:0 0 8px #271cff}
+ .track{color:#fff;font-weight:bold;border-top:1px solid #444979;padding-top:8px;letter-spacing:1px}
+ .artist{color:#a2a7ff;font-size:10px;margin-top:3px;letter-spacing:1px}
+ .seekline{display:flex;align-items:center;gap:8px;color:#151528;font-size:10px;padding:5px 2px}
+ input{accent-color:var(--blue);cursor:pointer;min-width:0} input:disabled{opacity:.4;cursor:default}
+ .seek{flex:1;width:100%} .controls{display:grid;grid-template-columns:repeat(5,1fr);gap:4px} .controls button{height:42px;font-size:20px;font-weight:bold}.controls .play{background:var(--blue);color:#fff}
+ .options{display:flex;gap:5px;align-items:center;margin-top:7px;color:#16162b;font-size:10px}.options input{width:70px;flex:1}.options button{font-size:10px;padding:3px 7px;min-height:28px}
+ .playlist{margin-top:6px;border:2px solid #424242;background:#090b24;max-height:190px;overflow:auto;padding:4px}
+ .playlist button{display:flex;justify-content:space-between;width:100%;background:transparent;border:0;color:#b5b5b5;text-align:left;padding:5px 7px;font-size:11px;min-height:27px}.playlist button:hover,.playlist button[aria-current=true]{background:var(--blue);color:white}
+ footer{display:flex;justify-content:space-between;color:#333;font-size:9px;letter-spacing:1px;margin:7px 2px 0}.status:not(:empty){background:#090b24;padding:7px;margin-top:5px;color:white;font-size:11px}
+ @media(max-width:767px){:host{display:none}}
+ </style>
+ <section class="console" aria-label="Penumbra Musikplayer">
+ <header><span>▦ PENUMBRA // AMP</span><button class="collapse" title="Einklappen" aria-label="Player einklappen" aria-expanded="true">−</button></header>
+ <div class="body">
+ <div class="display"><div class="top"><span class="state">STANDBY</span><span>STEREO // 01</span></div>
+ <div class="readout"><span class="digits">00:00</span><div class="grid" aria-hidden="true"></div></div>
+ <div class="track">PLAY RANDOM SOUND</div><div class="artist">BY JOHANNA MANGOLD</div></div>
+ <div class="seekline"><span>POS</span><input class="seek" aria-label="Wiedergabeposition" type="range" min="0" max="100" value="0" step="0.1" disabled><span class="duration">--:--</span></div>
+ <div class="controls">
+ <button class="prev" aria-label="Vorheriges Stück" title="Vorheriges Stück">|◀</button>
+ <button class="play" aria-label="Abspielen" title="Abspielen">▶</button>
+ <button class="pause" aria-label="Pause" title="Pause">Ⅱ</button>
+ <button class="stop" aria-label="Stopp" title="Stopp">■</button>
+ <button class="next" aria-label="Nächstes Stück" title="Nächstes Stück">▶|</button></div>
+ <div class="options"><label for="vol">VOL</label><input id="vol" type="range" min="0" max="1" step="0.01" value="1" aria-label="Lautstärke"><button class="shuffle" aria-pressed="true">SHUFFLE</button><button class="list" aria-expanded="false">LIST ≡</button></div>
+ <div class="playlist" hidden aria-label="Playlist"></div>
+ <footer><span>KARRKARR PENUMBRA!</span><span>10 TRANSMISSIONS</span></footer>
+ </div><div class="status" role="status"></div></section>`;
+ document.body.appendChild(host);
+ const $=s=>root.querySelector(s), audio=new Audio(); audio.preload='none';
+ let index=-1, shuffle=true, generation=0, history=[];
+ const mobile=matchMedia('(max-width:767px)');
+ const fmt=s=>Number.isFinite(s)?String(Math.floor(s/60)).padStart(2,'0')+':'+String(Math.floor(s%60)).padStart(2,'0'):'--:--';
+ const titles=['01','02','04','05','06','07','08','09','10','11'];
+ function timeline(){const ready=Number.isFinite(audio.duration)&&audio.duration>0;$('.seek').disabled=!ready;$('.seek').max=ready?audio.duration:100;$('.seek').value=ready?audio.currentTime:0;$('.digits').textContent=fmt(audio.currentTime);$('.duration').textContent=fmt(audio.duration)}
+ function volume(){audio.volume=Number($('#vol').value)*(index<0?0.6:tracks[index][1])}
+ function start(){const request=++generation;$('.status').textContent='';$('.state').textContent='LOADING';audio.play().catch(e=>{if(request!==generation||e.name==='AbortError')return;$('.state').textContent='PAUSED';$('.status').textContent='Wiedergabe nicht möglich. Play erneut drücken oder nächsten Track wählen.'})}
+ function select(i,remember=true){if(remember&&index>=0)history.push(index);index=i;audio.src='https://static.wixstatic.com/mp3/0f3578_'+tracks[i][0]+'.mp3';volume();$('.track').textContent='TRANSMISSION / '+titles[i];root.querySelectorAll('.playlist button').forEach((b,n)=>b.setAttribute('aria-current',String(n===i)));timeline();start()}
+ function next(){const choices=tracks.map((_,i)=>i).filter(i=>i!==index);select(shuffle?choices[Math.floor(Math.random()*choices.length)]:(index+1)%tracks.length)}
+ $('.play').onclick=()=>{if(index<0)next();else start()};
+ $('.pause').onclick=()=>{++generation;audio.pause();$('.state').textContent='PAUSED'};
+ $('.stop').onclick=()=>{++generation;audio.pause();if(index>=0)audio.currentTime=0;timeline();$('.state').textContent='STOPPED'};
+ $('.next').onclick=next;
+ $('.prev').onclick=()=>{if(history.length)select(history.pop(),false);else if(index>=0){audio.currentTime=0;start()}};
+ $('.seek').oninput=()=>{if(!$('.seek').disabled)audio.currentTime=Number($('.seek').value)};
+ $('#vol').oninput=volume;
+ $('.shuffle').onclick=()=>{shuffle=!shuffle;$('.shuffle').setAttribute('aria-pressed',String(shuffle))};
+ $('.list').onclick=()=>{const open=$('.playlist').hidden;$('.playlist').hidden=!open;$('.list').setAttribute('aria-expanded',String(open))};
+ $('.collapse').onclick=()=>{const open=$('.body').hidden;$('.body').hidden=!open;$('.collapse').textContent=open?'−':'+';$('.collapse').setAttribute('aria-expanded',String(open));$('.collapse').setAttribute('aria-label',open?'Player einklappen':'Player ausklappen');$('.collapse').title=open?'Einklappen':'Ausklappen'};
+ tracks.forEach((t,i)=>{const b=document.createElement('button');b.type='button';b.textContent=titles[i]+' / TRANSMISSION';b.onclick=()=>select(i);$('.playlist').appendChild(b)});
+ audio.addEventListener('playing',()=>{$('.state').textContent='PLAYING'});
+ audio.addEventListener('pause',()=>{$('.state').textContent='PAUSED'});
+ audio.addEventListener('waiting',()=>{$('.state').textContent='BUFFERING'});
+ audio.addEventListener('timeupdate',timeline);audio.addEventListener('loadedmetadata',timeline);
+ audio.addEventListener('ended',()=>{if(!mobile.matches)next()});
+ audio.addEventListener('error',()=>{$('.state').textContent='SIGNAL LOST';$('.status').textContent='Track nicht erreichbar. Bitte nächsten Track wählen.'});
+ mobile.addEventListener('change',()=>{if(mobile.matches){++generation;audio.pause()}});
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 })();
-</script>
 </body>
 </html>
