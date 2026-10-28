@@ -1087,6 +1087,361 @@
   }
 })();
 </script>
+<script>
+;(() => {
+  function upgrade() {
+    const host = document.getElementById('jm-penumbra-player');
+    const root = host && host.shadowRoot;
+    if (!root || root.querySelector('#compact-skin')) return;
 
+    const style = document.createElement('style');
+    style.id = 'compact-skin';
+    style.textContent = `
+      :host {
+        width:330px;
+        font-size:11px;
+        color-scheme:light;
+      }
+
+      .console {
+        padding:4px;
+        background:#adadad;
+        border-width:2px;
+        border-color:#ddd #444 #444 #ddd;
+        box-shadow:3px 3px 0 #101029;
+      }
+
+      header {
+        height:22px;
+        padding:2px 4px;
+        gap:6px;
+        cursor:grab;
+        touch-action:none;
+        user-select:none;
+        font-size:11px;
+        letter-spacing:1px;
+        background:repeating-linear-gradient(
+          0deg,#271cff 0 2px,#2117cf 2px 3px
+        );
+      }
+
+      header:active { cursor:grabbing; }
+      header span { white-space:nowrap; }
+
+      header button {
+        width:17px;
+        height:16px;
+        min-height:0;
+        font-size:12px;
+        line-height:10px;
+        flex:0 0 17px;
+        color:#111;
+        background:#adadad;
+      }
+
+      .display {
+        display:grid;
+        grid-template-columns:112px minmax(0,1fr);
+        grid-template-rows:22px 22px 17px;
+        column-gap:8px;
+        padding:7px;
+        margin-top:5px;
+        background:#a7a7a7;
+        overflow:hidden;
+      }
+
+      .display::after { display:none; }
+
+      .readout {
+        grid-column:1;
+        grid-row:1 / 4;
+        margin:0;
+        background:#111333;
+        border:1px solid #555;
+        padding:5px;
+        display:flex;
+        flex-direction:column;
+        align-items:stretch;
+        justify-content:center;
+      }
+
+      .digits {
+        font-size:29px;
+        line-height:1.1;
+        letter-spacing:-2px;
+        color:#d4d6ff;
+        text-shadow:1px 1px 0 #271cff;
+      }
+
+      .grid {
+        height:14px;
+        width:100%;
+        margin-top:4px;
+        transform:none;
+        background-size:7px 7px;
+        border-bottom:1px solid #7377d5;
+      }
+
+      .grid::after {
+        height:1px;
+        box-shadow:none;
+      }
+
+      .track {
+        grid-column:2;
+        grid-row:1;
+        font-size:10px;
+        line-height:18px;
+        padding:0 4px;
+        border:1px solid;
+        border-color:#555 #ddd #ddd #555;
+        color:#111333;
+        white-space:nowrap;
+        overflow:hidden;
+        text-overflow:ellipsis;
+      }
+
+      .artist {
+        grid-column:2;
+        grid-row:2;
+        margin:0;
+        align-self:center;
+        font-size:9px;
+        letter-spacing:0;
+        color:#252549;
+        white-space:nowrap;
+      }
+
+      .top {
+        grid-column:2;
+        grid-row:3;
+        align-items:center;
+        gap:3px;
+        font-size:8px;
+        letter-spacing:0;
+        color:#222244;
+      }
+
+      .seekline {
+        padding:4px 1px;
+        gap:5px;
+        font-size:9px;
+      }
+
+      input[type=range] {
+        appearance:none;
+        -webkit-appearance:none;
+        height:8px;
+        background:#777;
+        border:1px solid;
+        border-color:#555 #ddd #ddd #555;
+        border-radius:0;
+        margin:4px 0;
+      }
+
+      input[type=range]::-webkit-slider-thumb {
+        appearance:none;
+        width:12px;
+        height:13px;
+        border:2px solid;
+        border-color:#eee #444 #444 #eee;
+        background:#b5b5b5;
+        border-radius:0;
+      }
+
+      input[type=range]::-moz-range-thumb {
+        width:9px;
+        height:10px;
+        border:2px solid;
+        border-color:#eee #444 #444 #eee;
+        background:#b5b5b5;
+        border-radius:0;
+      }
+
+      input[type=range]::-moz-range-track {
+        background:transparent;
+      }
+
+      .controls {
+        display:flex;
+        gap:2px;
+      }
+
+      .controls button,
+      .controls .play {
+        width:30px;
+        height:23px;
+        min-height:23px;
+        padding:0;
+        font-size:12px;
+        line-height:18px;
+        font-weight:normal;
+        color:#17172c;
+        background:#b5b5b5;
+      }
+
+      .controls button:hover { background:#d1d1d1; }
+      .controls button:active { background:#8d8dc2; }
+
+      .options {
+        margin-top:5px;
+        font-size:9px;
+        gap:6px;
+      }
+
+      .options input { max-width:95px; }
+
+      .options button {
+        font-size:9px;
+        min-height:21px;
+        padding:1px 5px;
+      }
+
+      .playlist {
+        background:#b5b5b5;
+        max-height:145px;
+        padding:3px;
+        border-color:#555 #ddd #ddd #555;
+      }
+
+      .playlist button {
+        color:#111333;
+        font-size:11px;
+        min-height:23px;
+        padding:3px 5px;
+      }
+
+      .playlist button:hover,
+      .playlist button[aria-current=true] {
+        color:white;
+        background:#271cff;
+      }
+
+      footer {
+        font-size:8px;
+        letter-spacing:0;
+        margin-top:5px;
+      }
+
+      button:focus-visible,
+      input:focus-visible {
+        outline:2px solid #271cff;
+      }
+    `;
+
+    root.appendChild(style);
+
+    const bar = root.querySelector('header');
+    bar.title = 'Zum Verschieben ziehen · Pfeiltasten zum Verschieben';
+    bar.tabIndex = 0;
+    bar.setAttribute(
+      'aria-label',
+      'Player verschieben: ziehen oder Pfeiltasten'
+    );
+
+    let drag = null;
+    let placed = false;
+    const margin = 8;
+
+    function place(x, y) {
+      const box = host.getBoundingClientRect();
+
+      x = Math.max(
+        margin,
+        Math.min(x, innerWidth - box.width - margin)
+      );
+      y = Math.max(
+        margin,
+        Math.min(y, innerHeight - box.height - margin)
+      );
+
+      Object.assign(host.style, {
+        left: x + 'px',
+        top: y + 'px',
+        right: 'auto',
+        bottom: 'auto'
+      });
+
+      placed = true;
+    }
+
+    function keepVisible() {
+      if (!placed || !host.getClientRects().length) return;
+      const box = host.getBoundingClientRect();
+      place(box.left, box.top);
+    }
+
+    bar.addEventListener('pointerdown', e => {
+      if (e.button !== 0 || e.target.closest('button')) return;
+
+      const box = host.getBoundingClientRect();
+
+      drag = {
+        id: e.pointerId,
+        x: e.clientX - box.left,
+        y: e.clientY - box.top
+      };
+
+      bar.setPointerCapture(e.pointerId);
+      bar.focus({ preventScroll: true });
+      e.preventDefault();
+    });
+
+    bar.addEventListener('pointermove', e => {
+      if (drag && drag.id === e.pointerId) {
+        place(e.clientX - drag.x, e.clientY - drag.y);
+      }
+    });
+
+    function release(e) {
+      if (!drag || drag.id !== e.pointerId) return;
+      drag = null;
+
+      if (bar.hasPointerCapture(e.pointerId)) {
+        bar.releasePointerCapture(e.pointerId);
+      }
+    }
+
+    bar.addEventListener('pointerup', release);
+    bar.addEventListener('pointercancel', release);
+    bar.addEventListener('lostpointercapture', () => {
+      drag = null;
+    });
+
+    bar.addEventListener('keydown', e => {
+      if (e.target !== bar) return;
+
+      const delta = {
+        ArrowLeft: [-1, 0],
+        ArrowRight: [1, 0],
+        ArrowUp: [0, -1],
+        ArrowDown: [0, 1]
+      }[e.key];
+
+      if (!delta) return;
+      e.preventDefault();
+
+      const box = host.getBoundingClientRect();
+      const step = e.shiftKey ? 20 : 5;
+
+      place(
+        box.left + delta[0] * step,
+        box.top + delta[1] * step
+      );
+    });
+
+    addEventListener('resize', keepVisible);
+    new ResizeObserver(keepVisible).observe(host);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', upgrade, {
+      once: true
+    });
+  } else {
+    upgrade();
+  }
+})();
+</script>
 </body>
 </html>
