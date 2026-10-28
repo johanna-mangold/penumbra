@@ -82,5 +82,121 @@ milch suchend.</p></div></div></div></div></div></div><div class="board-toolbar"
 </div>
 <script src="./site-lib/search-index.js"></script>
 <script src="./site-lib/app.js"></script>
+  <!-- Diesen gesamten Block direkt vor </body> einfügen.
+Für Verfügbarkeit bei jedem Einstieg: in allen exportierten HTML-Seiten
+oder der gemeinsamen Export-Vorlage ergänzen. Bei erneutem Export erhalten.
+Interne Navigation via app.js erhält den Player. Vollständiges Neuladen
+oder Verlassen der Website beendet die Wiedergabe. -->
+<script>
+(() => {
+  function init() {
+    if (document.getElementById('jm-penumbra-player')) return;
+    const tracks = [
+      ['fa176141d462433495c8ea8b63271c69', .6],
+      ['95154ba589e64746bc51b4855f633798', .6],
+      ['2e5bc6516cdc406d93ba54552f5ba848', .6],
+      ['28d85c800426481185de6cf7dec13db3', .6],
+      ['6df51c1523aa4c6aa7808565a9de08b7', .6],
+      ['024d0eeb70a847559a555d71ddc2579e', .6],
+      ['245b4d7c62d442dab7f4cc24b1de12df', .1],
+      ['023cf4d4180d402c9ceaea19ab94619c', .8],
+      ['11472556fc1746f189adb2339dc72a1e', .8],
+      ['b973b67efcef4539a08c3ba999633f44', .6]
+    ];
+    const host = document.createElement('div');
+    host.id = 'jm-penumbra-player';
+    const root = host.attachShadow({mode: 'open'});
+    root.innerHTML = `
+      <style>
+        :host { position:fixed; left:16px; bottom:16px;
+          bottom:calc(16px + env(safe-area-inset-bottom, 0px));
+          width:190px; max-width:calc(100vw - 32px); z-index:1000;
+          color-scheme:light; font:11px/1.35 Arial,sans-serif; color:#64565d; }
+        * {box-sizing:border-box}
+        .bar {display:flex; align-items:center; gap:4px; min-height:40px;
+          padding:3px 5px; background:#fff; border:1px solid #e5d9df; border-radius:2px}
+        button {display:grid; place-items:center; flex:0 0 24px; width:24px;
+          height:32px; padding:0; border:0; background:transparent;
+          color:#a86f86; cursor:pointer}
+        button:hover {color:#82465f}
+        button:focus-visible,input:focus-visible {outline:2px solid #a86f86;outline-offset:1px}
+        svg {width:14px;height:14px;fill:currentColor}
+        .text {flex:1;min-width:0;white-space:nowrap}
+        input {display:block;width:100%;height:10px;margin:2px 0 0;accent-color:#a86f86}
+        [hidden] {display:none!important}
+        .status:not(:empty) {display:block;padding:5px;background:white;white-space:normal}
+        @media(max-width:767px) { :host {display:none} }
+      </style>
+      <div class="bar" role="group" aria-label="Musik von Johanna Mangold">
+        <button class="play" type="button" aria-label="Abspielen" title="Abspielen"></button>
+        <div class="text">play random sound<br>by johanna mangold
+          <input type="range" min="0" max="100" value="0" step="0.1"
+            aria-label="Wiedergabeposition" hidden disabled>
+        </div>
+        <button class="next" type="button" aria-label="Nächstes zufälliges Stück" title="Nächstes zufälliges Stück">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5v14l10-7zM17 5h2v14h-2z"/></svg>
+        </button>
+      </div><span class="status" role="status"></span>`;
+    document.body.appendChild(host);
+    const audio = new Audio();
+    audio.preload = 'none';
+    const play = root.querySelector('.play');
+    const next = root.querySelector('.next');
+    const seek = root.querySelector('input');
+    const status = root.querySelector('.status');
+    let index = -1;
+    let generation = 0;
+    const mobile = matchMedia('(max-width:767px)');
+    function update() {
+      const label = audio.paused ? 'Abspielen' : 'Pause';
+      play.setAttribute('aria-label',label);
+      play.title = label;
+      play.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="' +
+        (audio.paused ? 'M8 5v14l11-7z' : 'M7 5h3v14H7zM14 5h3v14h-3z') + '"/></svg>';
+    }
+    function start() {
+      status.textContent = '';
+      const request = ++generation;
+      audio.play().catch(error => {
+        if (request !== generation || error.name === 'AbortError') return;
+        status.textContent = 'Wiedergabe nicht möglich. Bitte erneut Play oder Weiter drücken.';
+        update();
+      });
+    }
+    function random() {
+      const choices = tracks.map((_,i)=>i).filter(i=>i!==index);
+      index = choices[Math.floor(Math.random()*choices.length)];
+      audio.src = 'https://static.wixstatic.com/mp3/0f3578_' + tracks[index][0] + '.mp3';
+      audio.volume = tracks[index][1];
+      seek.hidden = false; seek.disabled = true; seek.value = 0;
+      start();
+    }
+    play.addEventListener('click', () => {
+      if (index < 0) random();
+      else if (audio.paused) start();
+      else { ++generation; audio.pause(); }
+    });
+    next.addEventListener('click', random);
+    audio.addEventListener('play',update);
+    audio.addEventListener('pause',update);
+    audio.addEventListener('ended',()=>{if(!mobile.matches) random()});
+    audio.addEventListener('error',()=>{status.textContent='Stück nicht erreichbar. Bitte Weiter drücken.';update()});
+    function timeline() {
+      const ready = Number.isFinite(audio.duration) && audio.duration > 0;
+      seek.disabled = !ready;
+      seek.max = ready ? audio.duration : 100;
+      seek.value = ready ? audio.currentTime : 0;
+    }
+    audio.addEventListener('loadedmetadata',timeline);
+    audio.addEventListener('timeupdate',timeline);
+    seek.addEventListener('input',()=>{if(!seek.disabled)audio.currentTime=Number(seek.value)});
+    // Entsprechend dem bisherigen Player: auf Mobilgeräten ausgeblendet.
+    mobile.addEventListener('change',()=>{if(mobile.matches){++generation;audio.pause()}});
+    update();
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});
+  else init();
+})();
+</script>
 </body>
 </html>
