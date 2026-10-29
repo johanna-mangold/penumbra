@@ -895,7 +895,7 @@
     const history = [];
 
     const mobile = matchMedia('(max-width:767px)');
-    const titles = ['trading faces with ghosts I', 'hag / WYRD', 'faceless man (you could throw a kaenga)', 'trading faces with ghosts II', 'trading faces with ghosts III', 'sbisu', 'incubation (you could throw a kaenga)', 'hypnagogia (you could throw a kaenga)', 'hypnopompia (you could throw a kaenga)', 'sternenhäutung'];
+    const titles = ['1. trading faces with ghosts I', '2. hag', '3. faceless man', '4. trading faces with ghosts II', '5. trading faces with ghosts III', '6. sbisu', '7. incubation', '8. hypnagogia', '9. hypnopompia', '10. sternenhäutung'];
 
     function fmt(seconds) {
       if (!Number.isFinite(seconds)) return '--:--';
@@ -1041,7 +1041,7 @@
     tracks.forEach((track, i) => {
       const button = document.createElement('button');
       button.type = 'button';
-      button.textContent = titles[i] + ' / TRANSMISSION';
+      button.textContent = titles[i];
       button.onclick = () => select(i);
       $('.playlist').appendChild(button);
     });
