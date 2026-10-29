@@ -1442,5 +1442,71 @@
   }
 })();
 </script>
+  <img id="garden-bird" src="./biiird.png" alt="Vogel" draggable="false">
+
+<style>
+  #garden-bird {
+    position: fixed;
+    left: 60px;
+    top: 160px;
+    width: 110px;
+    height: auto;
+    z-index: 999;
+    user-select: none;
+    cursor: pointer;
+  }
+</style>
+
+<script>
+(() => {
+  const bird = document.getElementById('garden-bird');
+  const margin = 8;
+
+  function jump(event) {
+    const box = bird.getBoundingClientRect();
+    const maxX = Math.max(margin, innerWidth - box.width - margin);
+    const maxY = Math.max(margin, innerHeight - box.height - margin);
+
+    for (let attempt = 0; attempt < 80; attempt++) {
+      const x = Math.max(margin, Math.min(
+        maxX, box.left + (Math.random() * 600 - 300)
+      ));
+      const y = Math.max(margin, Math.min(
+        maxY, box.top + (Math.random() * 600 - 300)
+      ));
+
+      const underMouse =
+        event.clientX >= x - 15 &&
+        event.clientX <= x + box.width + 15 &&
+        event.clientY >= y - 15 &&
+        event.clientY <= y + box.height + 15;
+
+      if (underMouse || Math.hypot(x - box.left, y - box.top) < 60) {
+        continue;
+      }
+
+      bird.style.left = x + 'px';
+      bird.style.top = y + 'px';
+      break;
+    }
+  }
+
+  bird.addEventListener('pointerenter', jump);
+
+  function keepVisible() {
+    const box = bird.getBoundingClientRect();
+    bird.style.left = Math.max(margin, Math.min(
+      box.left, innerWidth - box.width - margin
+    )) + 'px';
+    bird.style.top = Math.max(margin, Math.min(
+      box.top, innerHeight - box.height - margin
+    )) + 'px';
+  }
+
+  bird.addEventListener('load', keepVisible);
+  window.addEventListener('resize', keepVisible);
+  if (bird.complete) keepVisible();
+})();
+</script>
 </body>
 </html>
